@@ -20,60 +20,145 @@ public class CourseProgressTest
 	@Test
 	public void lapStartsAtTheFirstObstacle()
 	{
-		progress.tick(C);
+		walk(C);
 		assertEquals(0, next());
+		assertEquals(-1, progress.liveIndex(C));
 	}
 
 	@Test
-	public void setsOffOnLeavingAfterClickingNext()
+	public void clickingTheNextObstacleMovesOnAtOnce()
 	{
-		progress.tick(C);
+		walk(C);
 		progress.clicked(0);
-		assertEquals(0, next());
-
-		progress.tick(C.dx(1));
 		assertEquals(1, next());
 		assertEquals(0, progress.indexClicksAway(2));
 	}
 
 	@Test
-	public void walkingOffWithoutClickingNextIsNotSettingOff()
+	public void boxStaysLiveUntilTheObstacleStarts()
 	{
-		progress.tick(C);
-		assertFalse(progress.clickingFromElsewhere(C));
-
-		progress.tick(C.dx(1));
-		assertEquals(0, next());
-		assertTrue(progress.clickingFromElsewhere(C.dx(1)));
-
+		walk(C);
 		progress.clicked(0);
-		progress.tick(C.dx(2));
+		walk(C.dx(1));
+		walk(C.dx(2));
 		assertEquals(1, next());
-		assertFalse(progress.clickingFromElsewhere(C.dx(2)));
+		assertEquals(0, progress.liveIndex(C.dx(2)));
+
+		animate(C.dx(3));
+		assertEquals(1, next());
+		assertEquals(-1, progress.liveIndex(C.dx(3)));
 	}
 
 	@Test
-	public void holdsThroughTheObstacleAndOnItsLandingTile()
+	public void callingOffTheClickMakesItNextAgain()
 	{
-		progress.tick(C);
+		walk(C);
 		progress.clicked(0);
-		progress.tick(C.dx(1));
-		progress.tick(new WorldPoint(12, 12, 1));
+		walk(C.dx(1));
+		progress.clicked(-1);
+		assertEquals(0, next());
+		walk(C.dx(2));
+		assertEquals(0, progress.liveIndex(C.dx(2)));
+
+		// Nor is an animation after that the obstacle.
+		animate(C.dx(2));
+		assertEquals(0, next());
+		assertEquals(0, progress.liveIndex(C.dx(2)));
+
+		progress.clicked(0);
+		assertEquals(1, next());
+		walk(C.dx(3));
+		animate(C.dx(4));
+		assertEquals(1, next());
+		assertEquals(-1, progress.liveIndex(C.dx(4)));
+	}
+
+	@Test
+	public void clickingAnotherObstacleCallsOffTheClick()
+	{
+		walk(C);
+		progress.clicked(0);
+		walk(C.dx(1));
+		progress.clicked(2);
+		assertEquals(0, next());
+		animate(C.dx(2));
+		assertEquals(0, next());
+		assertEquals(0, progress.liveIndex(C.dx(2)));
+	}
+
+	@Test
+	public void walkingOffWithoutClickingKeepsTheNextBoxLive()
+	{
+		walk(C);
+		walk(C.dx(1));
+		assertEquals(0, next());
+		assertEquals(0, progress.liveIndex(C.dx(1)));
+	}
+
+	@Test
+	public void clicksMidObstacleAreIgnored()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		animate(A);
+		progress.clicked(1);
 		assertEquals(1, next());
 
+		// Nor does this obstacle's animation still finishing on landing start the next.
 		land(A);
-		progress.tick(A);
+		animate(A);
+		walk(A);
 		assertEquals(1, next());
+		assertEquals(-1, progress.liveIndex(A));
 
 		progress.clicked(1);
-		progress.tick(A.dy(1));
+		assertEquals(2, next());
+		walk(A.dy(1));
+		assertEquals(1, progress.liveIndex(A.dy(1)));
+		animate(A.dy(1));
+		assertEquals(2, next());
+		assertEquals(-1, progress.liveIndex(A.dy(1)));
+	}
+
+	@Test
+	public void nextIsReadyOnceTheObstacleBeforeItHasLanded()
+	{
+		walk(C);
+		assertTrue(progress.nextIsReady());
+
+		progress.clicked(0);
+		assertFalse(progress.nextIsReady());
+		walk(C.dx(1));
+		animate(C.dx(2));
+		assertFalse(progress.nextIsReady());
+
+		land(A);
+		assertTrue(progress.nextIsReady());
+
+		// Calling off the walk to it makes the obstacle it was for next, and ready.
+		progress.clicked(1);
+		assertFalse(progress.nextIsReady());
+		progress.clicked(-1);
+		assertTrue(progress.nextIsReady());
+	}
+
+	@Test
+	public void clickingOnTheXpDropCounts()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		progress.xpDrop();
+		progress.clicked(1);
+		animate(A);
 		assertEquals(2, next());
 	}
 
 	@Test
 	public void landingTileIdentifiesTheObstacle()
 	{
-		progress.tick(C);
+		walk(C);
 		land(B);
 		assertEquals(2, next());
 	}
@@ -81,88 +166,144 @@ public class CourseProgressTest
 	@Test
 	public void unknownLandingTileFollowsLapOrder()
 	{
-		progress.tick(C);
+		walk(C);
 		land(A.dx(1));
 		assertEquals(1, next());
-		assertTrue(progress.clickingFromElsewhere(A.dx(1)));
-		assertFalse(progress.clickingFromElsewhere(A));
+		assertEquals(1, progress.liveIndex(A.dx(1)));
+		assertEquals(-1, progress.liveIndex(A));
 	}
 
 	@Test
 	public void clickOnAnotherObstacleOverridesLapOrder()
 	{
-		progress.tick(B);
+		walk(B);
 		progress.clicked(2);
 		land(C.dx(1));
 		assertEquals(0, next());
 	}
 
 	@Test
-	public void clickingAheadKeepsLapOrder()
+	public void ignoredClickMidObstacleKeepsLapOrder()
 	{
-		progress.tick(C);
-		progress.clicked(1);
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		progress.clicked(2);
 		land(A.dx(1));
 		assertEquals(1, next());
+		assertEquals(0, progress.indexClicksAway(2));
 	}
 
 	@Test
-	public void reachingTheLandingTileATickLateIsNotLeaving()
+	public void reachingTheLandingTileATickLateIsNotStarting()
 	{
-		progress.tick(C);
+		walk(C);
 		land(A.dy(-1));
 		progress.clicked(1);
-		progress.tick(A);
-		assertEquals(1, next());
+		animate(A);
+		walk(A.dy(1));
+		assertEquals(1, progress.liveIndex(A.dy(1)));
 
-		progress.tick(A.dy(1));
-		assertEquals(2, next());
+		animate(A.dy(1));
+		assertEquals(-1, progress.liveIndex(A.dy(1)));
 	}
 
 	@Test
 	public void lastObstacleWrapsToTheFirst()
 	{
-		progress.tick(B);
+		walk(B);
 		land(C);
 		assertEquals(0, next());
 
 		progress.clicked(0);
-		progress.tick(C.dx(1));
+		assertEquals(1, next());
+		walk(C.dx(1));
+		animate(C.dx(1));
 		assertEquals(1, next());
 	}
 
 	@Test
 	public void fallRestartsTheLap()
 	{
-		progress.tick(C);
+		walk(C);
 		land(A);
 		progress.clicked(1);
 
 		WorldPoint fallen = new WorldPoint(5, 5, 0);
 		progress.fell();
-		progress.tick(fallen);
+		animate(fallen);
 		assertEquals(0, next());
-		assertTrue(progress.clickingFromElsewhere(fallen));
+		assertEquals(0, progress.liveIndex(fallen));
 
-		progress.tick(fallen.dx(1));
-		assertEquals(0, next());
-
+		walk(fallen.dx(1));
 		progress.clicked(0);
-		progress.tick(fallen.dx(2));
 		assertEquals(1, next());
+		walk(fallen.dx(2));
+		animate(fallen.dx(3));
+		assertEquals(1, next());
+		assertEquals(-1, progress.liveIndex(fallen.dx(3)));
 	}
 
 	@Test
 	public void resumesPartWayRound()
 	{
 		progress.resumeAfter(0);
-		progress.tick(A.dy(4));
+		walk(A.dy(4));
 		assertEquals(1, next());
-		assertTrue(progress.clickingFromElsewhere(A.dy(4)));
+		assertEquals(1, progress.liveIndex(A.dy(4)));
 
 		progress.clicked(1);
-		progress.tick(A.dy(5));
 		assertEquals(2, next());
+		walk(A.dy(5));
+		animate(A.dy(5));
+		assertEquals(2, next());
+		assertEquals(-1, progress.liveIndex(A.dy(5)));
+	}
+
+	@Test
+	public void awayFromALapOnlyTheFirstObstacleShows()
+	{
+		walk(C.dx(5));
+		assertFalse(progress.showsWholeCourse());
+
+		progress.clicked(0);
+		assertTrue(progress.showsWholeCourse());
+		progress.clicked(-1);
+		assertFalse(progress.showsWholeCourse());
+	}
+
+	@Test
+	public void wholeCourseShowsOnALapAndForAMinuteAfterTheNextClick()
+	{
+		progress.resumeAfter(1);
+		walk(B.dx(1));
+		assertTrue(progress.showsWholeCourse());
+
+		// Gone AFK on landing.
+		land(C);
+		walkFor(500, C);
+		assertTrue(progress.showsWholeCourse());
+
+		progress.clicked(-1);
+		walkFor(99, C.dx(1));
+		assertTrue(progress.showsWholeCourse());
+		walk(C.dx(1));
+		assertFalse(progress.showsWholeCourse());
+	}
+
+	@Test
+	public void wholeCourseShowsAfterAFallUntilAMinuteAfterTheNextClick()
+	{
+		progress.resumeAfter(1);
+		walk(B.dx(1));
+		progress.clicked(2);
+		progress.fell();
+		walkFor(500, C.dx(5));
+		assertTrue(progress.showsWholeCourse());
+
+		progress.clicked(-1);
+		walkFor(100, C.dx(5));
+		assertFalse(progress.showsWholeCourse());
 	}
 
 	private int next()
@@ -170,9 +311,28 @@ public class CourseProgressTest
 		return progress.indexClicksAway(0);
 	}
 
+	private void walk(WorldPoint tile)
+	{
+		progress.tick(tile, false);
+	}
+
+	private void walkFor(int ticks, WorldPoint tile)
+	{
+		for (int tick = 0; tick < ticks; tick++)
+		{
+			walk(tile);
+		}
+	}
+
+	private void animate(WorldPoint tile)
+	{
+		progress.tick(tile, true);
+	}
+
+	// The xp drops as the obstacle's animation finishes.
 	private void land(WorldPoint tile)
 	{
 		progress.xpDrop();
-		progress.tick(tile);
+		animate(tile);
 	}
 }

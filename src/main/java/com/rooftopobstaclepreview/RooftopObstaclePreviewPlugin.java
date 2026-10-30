@@ -1,9 +1,12 @@
 package com.rooftopobstaclepreview;
 
+import com.google.inject.Provides;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -27,6 +30,12 @@ public class RooftopObstaclePreviewPlugin extends Plugin
 	@Inject
 	private OverlayManager overlayManager;
 
+	@Inject
+	private RooftopObstaclePreviewConfig config;
+
+	@Inject
+	private ItemManager itemManager;
+
 	private ObstacleTracker tracker;
 	private GhostClickboxOverlay overlay;
 
@@ -34,10 +43,16 @@ public class RooftopObstaclePreviewPlugin extends Plugin
 	protected void startUp()
 	{
 		tracker = new ObstacleTracker(client);
-		overlay = new GhostClickboxOverlay(client, tracker);
+		overlay = new GhostClickboxOverlay(client, tracker, config, itemManager);
 		eventBus.register(tracker);
 		clientThread.invoke(tracker::scan);
 		overlayManager.add(overlay);
+	}
+
+	@Provides
+	RooftopObstaclePreviewConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(RooftopObstaclePreviewConfig.class);
 	}
 
 	@Override

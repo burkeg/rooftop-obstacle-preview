@@ -1,5 +1,7 @@
 package com.rooftopobstaclepreview;
 
+import com.google.common.collect.Sets;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
@@ -7,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
+import net.runelite.api.MenuAction;
 import net.runelite.api.Player;
 import net.runelite.api.Skill;
 import net.runelite.api.Tile;
@@ -32,6 +35,13 @@ import net.runelite.client.eventbus.Subscribe;
 @RequiredArgsConstructor
 class ObstacleTracker
 {
+	// Clicks that send the player somewhere, so call off heading for an obstacle; only the object options are on one.
+	private static final Set<MenuAction> SENDS_PLAYER = Sets.union(
+		EnumSet.range(MenuAction.ITEM_USE_ON_GAME_OBJECT, MenuAction.WALK),
+		EnumSet.range(MenuAction.PLAYER_FIRST_OPTION, MenuAction.PLAYER_EIGHTH_OPTION));
+	private static final Set<MenuAction> OBJECT_OPTIONS =
+		EnumSet.range(MenuAction.GAME_OBJECT_FIRST_OPTION, MenuAction.GAME_OBJECT_FIFTH_OPTION);
+
 	private final Client client;
 	@Getter
 	private final Set<TileObject> objects = new HashSet<>();
@@ -49,9 +59,19 @@ class ObstacleTracker
 		return progress.indexClicksAway(clicks);
 	}
 
-	boolean clickingFromElsewhere()
+	int liveIndex()
 	{
-		return progress.clickingFromElsewhere(lastTile);
+		return progress.liveIndex(lastTile);
+	}
+
+	boolean nextIsReady()
+	{
+		return progress.nextIsReady();
+	}
+
+	boolean showsWholeCourse()
+	{
+		return progress.showsWholeCourse();
 	}
 
 	/** Picks up obstacles already in the scene when the plugin is switched on; call on the client thread. */
@@ -153,9 +173,10 @@ class ObstacleTracker
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
-		if (progress != null)
+		MenuAction action = event.getMenuAction();
+		if (progress != null && SENDS_PLAYER.contains(action))
 		{
-			progress.clicked(course.indexOf(event.getId()));
+			progress.clicked(OBJECT_OPTIONS.contains(action) ? course.indexOf(event.getId()) : -1);
 		}
 	}
 
@@ -203,7 +224,7 @@ class ObstacleTracker
 		}
 		if (progress != null)
 		{
-			progress.tick(at);
+			progress.tick(at, player.getAnimation() != -1);
 		}
 	}
 
