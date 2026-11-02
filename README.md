@@ -15,5 +15,6 @@ before you land.
 - Away from a lap, only the first obstacle shows. The whole course shows on a lap, and for a minute after you next do
   something once it ends or you fall off.
 
-https://github.com/user-attachments/assets/2a9f74c2-72b2-49da-9c31-0856c8a9a588
+https://github.com/user-attachments/assets/f10205af-1e6b-4132-af79-aa02f246d88a
+
 
