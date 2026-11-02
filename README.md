@@ -14,6 +14,9 @@ before you land.
 - A squirrel rides the next obstacle's real clickbox, so you can follow it into the red box. It can be turned off.
 - Away from a lap, only the first obstacle shows. The whole course shows on a lap, and for a minute after you next do
   something once it ends or you fall off.
+- Optionally, a RuneLite notification the moment you are off an obstacle's animation after it lands or drops you,
+  unless you have already clicked on. The idle notifier plugin does not fire for rooftop obstacles. Off by default;
+  sound, tray and focus settings are the client's notification settings, or your own for this plugin.
 
 https://github.com/user-attachments/assets/2a9f74c2-72b2-49da-9c31-0856c8a9a588
 

@@ -14,6 +14,9 @@ final class CourseProgress
 	private boolean pendingLanding;
 	// Seen off any obstacle since landing, so the next animation is not the tail of the one just done.
 	private boolean settled;
+	// An obstacle has landed or dropped the player and they have yet to be seen off its animation.
+	private boolean justOff;
+	private boolean becameIdle;
 	private boolean left;
 	// Clicked anywhere since the last landing or fall. Until then the player may be AFK, so the minute waits.
 	private boolean actedSinceLanding;
@@ -46,9 +49,11 @@ final class CourseProgress
 		actedSinceLanding = true;
 	}
 
+	// The game takes clicks from the xp drop, so one before the tick that registers the landing is acting after it.
 	void xpDrop()
 	{
 		pendingLanding = true;
+		actedSinceLanding = false;
 	}
 
 	/** A failed obstacle drops the player off the course, so the lap starts over. */
@@ -58,6 +63,7 @@ final class CourseProgress
 		lastClicked = -1;
 		pendingLanding = false;
 		settled = false;
+		justOff = true;
 		left = false;
 		actedSinceLanding = false;
 	}
@@ -65,19 +71,22 @@ final class CourseProgress
 	/** Call once per game tick with the player's tile and whether they are animating, as on an obstacle. */
 	void tick(WorldPoint player, boolean animating)
 	{
+		becameIdle = false;
 		if (pendingLanding)
 		{
 			landedOn = landingIndex(player);
 			pendingLanding = false;
 			settled = false;
+			justOff = true;
 			left = false;
-			actedSinceLanding = false;
 		}
 		// Setting off is starting the next obstacle after clicking it. Walking up to it is not, since another
 		// click can still call that off.
 		if (!animating)
 		{
 			settled = true;
+			becameIdle = justOff && !actedSinceLanding;
+			justOff = false;
 		}
 		else if (settled && !left && lastClicked == (landedOn + 1) % obstacles.length)
 		{
@@ -91,6 +100,15 @@ final class CourseProgress
 		{
 			ticksOffLap = Math.min(ticksOffLap + 1, LINGER_TICKS);
 		}
+	}
+
+	/**
+	 * Whether the player is this tick first seen off an obstacle's animation since it landed or dropped them, without
+	 * having clicked anything since: they are idle, and the game would take a click on the next obstacle.
+	 */
+	boolean becameIdle()
+	{
+		return becameIdle;
 	}
 
 	/**

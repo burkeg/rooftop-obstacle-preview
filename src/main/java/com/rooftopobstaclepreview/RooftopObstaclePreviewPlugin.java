@@ -3,6 +3,7 @@ package com.rooftopobstaclepreview;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 import net.runelite.api.Client;
+import net.runelite.client.Notifier;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -36,13 +37,16 @@ public class RooftopObstaclePreviewPlugin extends Plugin
 	@Inject
 	private ItemManager itemManager;
 
+	@Inject
+	private Notifier notifier;
+
 	private ObstacleTracker tracker;
 	private GhostClickboxOverlay overlay;
 
 	@Override
 	protected void startUp()
 	{
-		tracker = new ObstacleTracker(client);
+		tracker = new ObstacleTracker(client, notifier, config);
 		overlay = new GhostClickboxOverlay(client, tracker, config, itemManager);
 		eventBus.register(tracker);
 		clientThread.invoke(tracker::scan);

@@ -29,6 +29,7 @@ import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.WallObjectSpawned;
+import net.runelite.client.Notifier;
 import net.runelite.client.eventbus.Subscribe;
 
 /** Tracks the course the player is on, its obstacle objects and the player's progress round it. */
@@ -43,6 +44,8 @@ class ObstacleTracker
 		EnumSet.range(MenuAction.GAME_OBJECT_FIRST_OPTION, MenuAction.GAME_OBJECT_FIFTH_OPTION);
 
 	private final Client client;
+	private final Notifier notifier;
+	private final RooftopObstaclePreviewConfig config;
 	@Getter
 	private final Set<TileObject> objects = new HashSet<>();
 	@Getter
@@ -225,6 +228,10 @@ class ObstacleTracker
 		if (progress != null)
 		{
 			progress.tick(at, player.getAnimation() != -1);
+			if (progress.becameIdle())
+			{
+				notifier.notify(config.idleNotification(), "You are now idle!");
+			}
 		}
 	}
 

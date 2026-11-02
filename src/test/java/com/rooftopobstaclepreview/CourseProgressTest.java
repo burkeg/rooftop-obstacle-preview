@@ -306,6 +306,119 @@ public class CourseProgressTest
 		assertFalse(progress.showsWholeCourse());
 	}
 
+	@Test
+	public void idleOnceOffTheAnimationOfTheObstacleThatLandedYou()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		assertFalse(progress.becameIdle());
+		land(A);
+		assertFalse(progress.becameIdle());
+		animate(A);
+		assertFalse(progress.becameIdle());
+
+		walk(A);
+		assertTrue(progress.becameIdle());
+		walk(A);
+		assertFalse(progress.becameIdle());
+	}
+
+	@Test
+	public void idleAtOnceWhenTheAnimationEndsOnTheXpDrop()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		progress.xpDrop();
+		walk(A);
+		assertTrue(progress.becameIdle());
+	}
+
+	@Test
+	public void clickingOnBeforeTheAnimationEndsIsNotIdle()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		progress.xpDrop();
+		progress.clicked(1);
+		animate(A);
+		walk(A);
+		assertFalse(progress.becameIdle());
+
+		// A walk elsewhere is acting too.
+		animate(A.dy(1));
+		land(B);
+		progress.clicked(-1);
+		walk(B);
+		assertFalse(progress.becameIdle());
+
+		// Though the next landing is idle again.
+		progress.clicked(2);
+		animate(B.dx(1));
+		land(C);
+		walk(C);
+		assertTrue(progress.becameIdle());
+	}
+
+	@Test
+	public void clickTheGameIgnoredMidObstacleLeavesYouIdle()
+	{
+		walk(C);
+		progress.clicked(0);
+		animate(C.dx(1));
+		progress.clicked(1);
+		land(A);
+		walk(A);
+		assertTrue(progress.becameIdle());
+	}
+
+	@Test
+	public void idleOnceOffTheFall()
+	{
+		walk(C);
+		land(A);
+		walk(A);
+		progress.clicked(1);
+		animate(A.dy(1));
+
+		WorldPoint fallen = new WorldPoint(5, 5, 0);
+		progress.fell();
+		animate(fallen);
+		assertFalse(progress.becameIdle());
+		walk(fallen);
+		assertTrue(progress.becameIdle());
+		walk(fallen);
+		assertFalse(progress.becameIdle());
+	}
+
+	@Test
+	public void standingAboutIsNotIdle()
+	{
+		walk(C);
+		assertFalse(progress.becameIdle());
+		walk(C.dx(1));
+		assertFalse(progress.becameIdle());
+
+		// Nor is an animation that is not an obstacle ending.
+		land(A);
+		walk(A);
+		assertTrue(progress.becameIdle());
+		animate(A);
+		walk(A);
+		assertFalse(progress.becameIdle());
+	}
+
+	@Test
+	public void resumingPartWayRoundIsNotIdle()
+	{
+		progress.resumeAfter(0);
+		animate(A);
+		walk(A);
+		assertFalse(progress.becameIdle());
+	}
+
 	private int next()
 	{
 		return progress.indexClicksAway(0);
