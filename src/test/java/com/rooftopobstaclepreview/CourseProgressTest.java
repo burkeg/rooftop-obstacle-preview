@@ -307,36 +307,35 @@ public class CourseProgressTest
 	}
 
 	@Test
-	public void idleOnceOffTheAnimationOfTheObstacleThatLandedYou()
+	public void nextIsReadyOnTheXpDropOfTheObstacleThatLandedYou()
 	{
 		walk(C);
 		progress.clicked(0);
 		animate(C.dx(1));
-		assertFalse(progress.becameIdle());
-		land(A);
-		assertFalse(progress.becameIdle());
-		animate(A);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 
+		// The animation may still be finishing.
+		land(A);
+		assertTrue(progress.nextBecameReady());
+		animate(A);
+		assertFalse(progress.nextBecameReady());
 		walk(A);
-		assertTrue(progress.becameIdle());
-		walk(A);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 	}
 
 	@Test
-	public void idleAtOnceWhenTheAnimationEndsOnTheXpDrop()
+	public void nextIsReadyOnTheXpDropWhenTheAnimationHasAlreadyEnded()
 	{
 		walk(C);
 		progress.clicked(0);
 		animate(C.dx(1));
 		progress.xpDrop();
 		walk(A);
-		assertTrue(progress.becameIdle());
+		assertTrue(progress.nextBecameReady());
 	}
 
 	@Test
-	public void clickingOnBeforeTheAnimationEndsIsNotIdle()
+	public void clickingOnTheXpDropIsNotIdle()
 	{
 		walk(C);
 		progress.clicked(0);
@@ -344,22 +343,24 @@ public class CourseProgressTest
 		progress.xpDrop();
 		progress.clicked(1);
 		animate(A);
+		assertFalse(progress.nextBecameReady());
 		walk(A);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 
 		// A walk elsewhere is acting too.
 		animate(A.dy(1));
-		land(B);
+		progress.xpDrop();
 		progress.clicked(-1);
+		animate(B);
+		assertFalse(progress.nextBecameReady());
 		walk(B);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 
 		// Though the next landing is idle again.
 		progress.clicked(2);
 		animate(B.dx(1));
 		land(C);
-		walk(C);
-		assertTrue(progress.becameIdle());
+		assertTrue(progress.nextBecameReady());
 	}
 
 	@Test
@@ -370,12 +371,11 @@ public class CourseProgressTest
 		animate(C.dx(1));
 		progress.clicked(1);
 		land(A);
-		walk(A);
-		assertTrue(progress.becameIdle());
+		assertTrue(progress.nextBecameReady());
 	}
 
 	@Test
-	public void idleOnceOffTheFall()
+	public void nextIsReadyOnTheFall()
 	{
 		walk(C);
 		land(A);
@@ -386,28 +386,34 @@ public class CourseProgressTest
 		WorldPoint fallen = new WorldPoint(5, 5, 0);
 		progress.fell();
 		animate(fallen);
-		assertFalse(progress.becameIdle());
+		assertTrue(progress.nextBecameReady());
 		walk(fallen);
-		assertTrue(progress.becameIdle());
-		walk(fallen);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
+
+		// Unless clicked on before the tick.
+		progress.clicked(0);
+		animate(fallen.dx(1));
+		progress.fell();
+		progress.clicked(-1);
+		animate(fallen);
+		assertFalse(progress.nextBecameReady());
 	}
 
 	@Test
 	public void standingAboutIsNotIdle()
 	{
 		walk(C);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 		walk(C.dx(1));
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 
 		// Nor is an animation that is not an obstacle ending.
 		land(A);
+		assertTrue(progress.nextBecameReady());
 		walk(A);
-		assertTrue(progress.becameIdle());
 		animate(A);
 		walk(A);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 	}
 
 	@Test
@@ -415,8 +421,9 @@ public class CourseProgressTest
 	{
 		progress.resumeAfter(0);
 		animate(A);
+		assertFalse(progress.nextBecameReady());
 		walk(A);
-		assertFalse(progress.becameIdle());
+		assertFalse(progress.nextBecameReady());
 	}
 
 	private int next()

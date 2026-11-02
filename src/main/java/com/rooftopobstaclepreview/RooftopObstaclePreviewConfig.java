@@ -23,8 +23,8 @@ public interface RooftopObstaclePreviewConfig extends Config
 	@ConfigItem(
 		keyName = "idleNotification",
 		name = "Idle notification",
-		description = "Notify the moment you are off an obstacle's animation after it lands or drops you, unless you have"
-			+ " already clicked on. The idle notifier plugin does not fire for rooftop obstacles.",
+		description = "Notify on the first tick a click on the next obstacle would count after the last one lands or drops"
+			+ " you, unless you have already clicked on. The idle notifier plugin does not fire for rooftop obstacles.",
 		position = 2
 	)
 	default Notification idleNotification()

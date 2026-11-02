@@ -228,7 +228,7 @@ class ObstacleTracker
 		if (progress != null)
 		{
 			progress.tick(at, player.getAnimation() != -1);
-			if (progress.becameIdle())
+			if (progress.nextBecameReady())
 			{
 				notifier.notify(config.idleNotification(), "You are now idle!");
 			}

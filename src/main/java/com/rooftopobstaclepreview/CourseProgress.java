@@ -14,9 +14,9 @@ final class CourseProgress
 	private boolean pendingLanding;
 	// Seen off any obstacle since landing, so the next animation is not the tail of the one just done.
 	private boolean settled;
-	// An obstacle has landed or dropped the player and they have yet to be seen off its animation.
-	private boolean justOff;
-	private boolean becameIdle;
+	// Came off an obstacle, by landing or falling, and the tick has yet to take that in.
+	private boolean cameOff;
+	private boolean nextBecameReady;
 	private boolean left;
 	// Clicked anywhere since the last landing or fall. Until then the player may be AFK, so the minute waits.
 	private boolean actedSinceLanding;
@@ -63,7 +63,7 @@ final class CourseProgress
 		lastClicked = -1;
 		pendingLanding = false;
 		settled = false;
-		justOff = true;
+		cameOff = true;
 		left = false;
 		actedSinceLanding = false;
 	}
@@ -71,22 +71,21 @@ final class CourseProgress
 	/** Call once per game tick with the player's tile and whether they are animating, as on an obstacle. */
 	void tick(WorldPoint player, boolean animating)
 	{
-		becameIdle = false;
 		if (pendingLanding)
 		{
 			landedOn = landingIndex(player);
 			pendingLanding = false;
 			settled = false;
-			justOff = true;
+			cameOff = true;
 			left = false;
 		}
+		nextBecameReady = cameOff && !actedSinceLanding;
+		cameOff = false;
 		// Setting off is starting the next obstacle after clicking it. Walking up to it is not, since another
 		// click can still call that off.
 		if (!animating)
 		{
 			settled = true;
-			becameIdle = justOff && !actedSinceLanding;
-			justOff = false;
 		}
 		else if (settled && !left && lastClicked == (landedOn + 1) % obstacles.length)
 		{
@@ -103,12 +102,13 @@ final class CourseProgress
 	}
 
 	/**
-	 * Whether the player is this tick first seen off an obstacle's animation since it landed or dropped them, without
-	 * having clicked anything since: they are idle, and the game would take a click on the next obstacle.
+	 * Whether this is the first tick the game would take a click on the next obstacle since the last one landed or
+	 * dropped the player, and they have yet to click anything: the earliest an idle notification can be acted on.
+	 * That is the xp drop, while the obstacle's animation may still be finishing.
 	 */
-	boolean becameIdle()
+	boolean nextBecameReady()
 	{
-		return becameIdle;
+		return nextBecameReady;
 	}
 
 	/**
